@@ -1,0 +1,574 @@
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script>
+
+      done = 0;
+      tables = 0;
+      totalTables = 0;
+
+      svg = "";
+      p1 = "";
+      p2 = "";
+
+      lhdecided=false;
+      p1slow=true;
+      p1sturn=true;
+      p1sunk=0;
+      p2sunk=0;
+
+      playing = true;
+      onball = false;
+      lockNames = false;
+
+      whiteBallReplaced = false;
+
+      lowBalls = ["YELLOW", "BLUE", "RED", "PURPLE", "ORANGE", "GREEN", "BROWN"]
+      highBalls = ["LIGHTYELLOW", "LIGHTBLUE", "PINK", "MEDIUMPURPLE", "LIGHTSALMON", "LIGHTGREEN", "SANDYBROWN"]
+
+      document.addEventListener("mousemove", trackit);
+      document.addEventListener("mousedown", makestick);
+      document.addEventListener("mouseup", nostick);
+
+      var cb = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      cb.setAttribute("id", "cueball");
+      cb.setAttribute("cx", "675");
+      cb.setAttribute("cy", "1350");
+      cb.setAttribute("r", "28");
+      cb.setAttribute("fill", "white");
+      cb.setAttribute("onmousedown", "oncue();");
+
+      function createBall(color){
+        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", "100");
+        svg.setAttribute("height", "100");
+    
+        // Create the circle element
+        var ball = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        ball.setAttribute("cx", "50");
+        ball.setAttribute("cy", "50");
+        ball.setAttribute("r", "28");
+        ball.setAttribute("fill", color);
+    
+        // Append the circle to the SVG element
+        svg.appendChild(ball);
+
+        return svg;
+      }
+
+      function checkBlack(){
+
+        let found = false;
+
+        for (var i = 0; i < $('#mainsvg').children().length; i++) {
+
+          var element = $('#mainsvg').children().eq(i);
+
+          if(element.attr('fill') == "BLACK" && element.attr('r') == 28){
+            found = true;
+          }
+        }
+
+        return found;
+      }
+
+      function checkSunk(settingNames){
+
+        oldp1sunk = p1sunk;
+        oldp2sunk = p2sunk;
+        p1sunk = 0;
+        p2sunk = 0;
+
+        //check low
+        if(p1slow){
+          $('#p1unsunk').empty();
+          $('#p1sunk').empty();
+        }else{
+          $('#p2unsunk').empty();
+          $('#p2sunk').empty();
+        }
+        for(let b = 0; b < 7; b++){
+
+          let found = false;
+
+          for (var i = 0; i < $('#mainsvg').children().length; i++) {
+
+            var element = $('#mainsvg').children().eq(i);
+
+            if(element.attr('fill') == lowBalls[b] && element.attr('r') == 28){
+              found = true;
+            }
+          }
+
+          if(p1slow){
+            if(found){
+              $('#p1unsunk').append(createBall(lowBalls[b]));
+            }else{
+              $('#p1sunk').append(createBall(lowBalls[b]));
+              p1sunk++;
+            }
+          }else{
+            if(found){
+              $('#p2unsunk').append(createBall(lowBalls[b]));
+            }else{
+              $('#p2sunk').append(createBall(lowBalls[b]));
+              p1sunk++;
+            }
+          }
+        }
+
+        //check high
+        if(p1slow){
+          $('#p2unsunk').empty();
+          $('#p2sunk').empty();
+        }else{
+          $('#p1unsunk').empty();
+          $('#p1sunk').empty();
+        }
+        
+        for(let b = 0; b < 7; b++){
+
+          let found = false;
+
+          for (var i = 0; i < $('#mainsvg').children().length; i++) {
+
+            var element = $('#mainsvg').children().eq(i);
+
+            if(element.attr('fill') == highBalls[b] && element.attr('r') == 28){
+              found = true;
+            }
+          }
+
+          if(p1slow){
+            if(found){
+              $('#p2unsunk').append(createBall(highBalls[b]));
+            }else{
+              $('#p2sunk').append(createBall(highBalls[b]));
+              p2sunk++;
+            }
+          }else{
+            if(found){
+              $('#p1unsunk').append(createBall(highBalls[b]));
+            }else{
+              $('#p1sunk').append(createBall(highBalls[b]));
+              p2sunk++;
+            }
+          }
+        }
+
+        if(p1sunk == 7){
+          if(p1slow){
+            $('#p1unsunk').append(createBall("BLACK"));
+          }else{
+            $('#p2unsunk').append(createBall("BLACK"));
+          }
+        }
+
+        if(p2sunk == 7){
+          if(p1slow){
+            $('#p2unsunk').append(createBall("BLACK"));
+          }else{
+            $('#p1unsunk').append(createBall("BLACK"));
+          }
+        }
+        
+        
+        //p1sturn cases
+        if(checkBlack()){
+          if(!settingNames){
+            console.log(p1sturn, p1sunk, oldp1sunk, p2sunk, oldp2sunk, whiteBallReplaced, p1slow)
+            if(p1slow){
+              if(p1sturn){
+                if(whiteBallReplaced){
+                  whiteBallReplaced = false;
+                  p1sturn = false;
+                }else if(p1sunk > oldp1sunk){
+                  p1sturn = true;
+                }else{
+                  p1sturn = false;
+                }
+              }else{
+                if(whiteBallReplaced){
+                  whiteBallReplaced = false;
+                  p1sturn = true;
+                }else if(p2sunk > oldp2sunk){
+                  p1sturn = false;
+                }else{
+                  p1sturn = true;
+                }
+              }
+            }else{
+              if(p1sturn){
+                if(whiteBallReplaced){
+                  whiteBallReplaced = false;
+                  p1sturn = false;
+                }else if(p2sunk > oldp2sunk){
+                  p1sturn = true;
+                }else{
+                  p1sturn = false;
+                }
+              }else{
+                if(whiteBallReplaced){
+                  whiteBallReplaced = false;
+                  p1sturn = true;
+                }else if(p1sunk > oldp1sunk){
+                  p1sturn = false;
+                }else{
+                  p1sturn = true;
+                }
+              }
+            }
+          }
+
+          console.log(p1sturn)
+          updateTurn();
+
+        }else{
+          if(p1slow){
+            if(p1sturn){
+              if(p1sunk == 7){
+                $('#whosturn').text(p1 + " sunk all balls, " + p1 + " Wins!!!");
+              }else{
+                $('#whosturn').text(p1 + " sunk the black too early, " + p2 + " Wins!!!");
+              }
+            }else{
+              if(p2sunk == 7){
+                $('#whosturn').text(p2 + " sunk all balls, " + p2 + " Wins!!!");
+              }else{
+                $('#whosturn').text(p2 + " sunk the black too early, " + p1 + " Wins!!!");
+              }
+            }
+          }else{
+            if(p1sturn){
+              if(p2sunk == 7){
+                $('#whosturn').text(p1 + " sunk all balls, " + p1 + " Wins!!!");
+              }else{
+                $('#whosturn').text(p1 + " sunk the black too early, " + p2 + " Wins!!!");
+              }
+            }else{
+              if(p1sunk == 7){
+                $('#whosturn').text(p2 + " sunk all balls, " + p2 + " Wins!!!");
+              }else{
+                $('#whosturn').text(p2 + " sunk the black too early, " + p1 + " Wins!!!");
+              }
+            }
+          }
+        }
+      }
+
+      function decidelh(){
+
+        lowsunk = 0;
+        highsunk = 0;
+
+        //low
+        for(let b = 0; b < 7; b++){
+
+          let found = false;
+
+          for (var i = 0; i < $('#mainsvg').children().length; i++) {
+
+            var element = $('#mainsvg').children().eq(i);
+
+            if(element.attr('fill') == lowBalls[b] && element.attr('r') == 28){
+              found = true;
+            }
+          }
+
+          if(!found){
+            lowsunk++;
+          }
+        }
+
+        //high
+        for(let b = 0; b < 7; b++){
+
+          let found = false;
+
+          for (var i = 0; i < $('#mainsvg').children().length; i++) {
+
+            var element = $('#mainsvg').children().eq(i);
+
+            if(element.attr('fill') == highBalls[b] && element.attr('r') == 28){
+              found = true;
+            }
+          }
+
+          if(!found){
+            highsunk++;
+          }
+        }
+
+        if(lowsunk == highsunk && lowsunk > 0){
+          p1slow = true;
+          lhdecided = true;
+        }else if(lowsunk == highsunk){
+          if(p1sturn){
+            p1sturn = false;
+          }else{
+            p1sturn = true;
+          }
+          updateTurn();
+        }else if(p1sturn && lowsunk > highsunk){
+          p1slow = true;
+          lhdecided = true;
+        }else if(p1sturn && highsunk > lowsunk){
+          p1slow = false;
+          lhdecided = true;
+        }else if(!p1sturn && lowsunk > highsunk){
+          p1slow = false;
+          lhdecided = true;
+        }else if(!p1sturn && highsunk > lowsunk){
+          p1sturn = true;
+          lhdecided = true;
+        }
+      }
+
+      function updateTurn(){
+        if(p1sturn){
+          $('#whosturn').text(p1 + "'s Turn...")
+        }else{
+          $('#whosturn').text(p2 + "'s Turn...")
+        }
+      }
+
+      function playShot(){
+
+        for(let i = totalTables; i < totalTables + Number(tables); i++){
+
+          let url = "/table-" + i + ".svg"
+
+          $.get(url, function(data){
+            svg = (new XMLSerializer()).serializeToString(data);
+            $('#mainsvg').replaceWith(svg);
+            done++;
+            console.log(done, totalTables)
+            if(done == totalTables){
+
+              if ($('#cueball').length === 0){
+                console.log("BALL GONE");
+                whiteBallReplaced = true;
+                $('#mainsvg').append(cb);
+              }else{
+                whiteBallReplaced = false;
+              }
+
+              if(lhdecided){
+                checkSunk(false);
+              }else{
+                decidelh()
+                if(lhdecided){
+                  checkSunk(false);
+                }
+              }
+              
+              playing = false;
+              console.log('Playing Off')
+            }
+          });
+        }
+        totalTables += Number(tables)
+      }
+
+      function makestick(){
+        if(!playing){
+          if(onball){
+            $('#stick').attr('stroke-width', 10);
+            $('#line').attr('stroke-width', 2);
+          }
+        }
+      }
+
+      function nostick(){
+
+        if(!playing && onball){
+
+          playing = true;
+          onball = false;
+
+          let xhr = new XMLHttpRequest()
+          let url = "/shot.html"
+          xhr.open("POST", url, true)
+          xhr.setRequestHeader("Content-Type", "application.json")
+
+          //if the stoke width is > 0:
+            //then calculate and send a shot!
+          if($('#stick').attr('stroke-width') > 0){
+            $('#stick').attr('stroke', "RED");
+
+            x1 = $('#stick').attr('x1');
+            y1 = $('#stick').attr('y1');
+            x2 = $('#stick').attr('x2');
+            y2 = $('#stick').attr('y2');
+
+            xvel = (x1 - x2) * 1.5;
+            yvel = (y1 - y2) * 1.5;
+            $('#xvel').attr('value', xvel);
+            $('#yvel').attr('value', yvel);
+
+            xhr.onreadystatechange = function () {
+              if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status == 200) {
+                  tables = xhr.responseText;
+                  console.log('Response:', tables);
+                  playShot();
+                }
+              }
+            };
+            
+            toSend = [xvel, yvel, p1, p2]
+
+            console.log(toSend)
+
+            toSendS = JSON.stringify(toSend)
+
+            xhr.send(toSendS)
+          }
+        }
+
+        $('#stick').attr('stroke-width', 0);
+        $('#line').attr('stroke-width', 0);
+      }
+
+      function trackit( event ){
+	      if (!playing){
+
+          $('#valx').remove();
+          $('#valy').remove();
+          $('<div id="valx">'+event.pageX+'</div>').appendTo("#x");
+          $('<div id="valy">'+event.pageY+'</div>').appendTo("#y");
+
+          let cb_cx = $('#cueball').attr('cx')
+          let cb_cy = $('#cueball').attr('cy')
+          let body = $('#mainsvg')[0].getBoundingClientRect();
+
+          // console.log(body)
+
+          $('#stick').attr('x1', cb_cx);
+          $('#stick').attr('y1', cb_cy);
+          $('#stick').attr('x2', (event.pageX - body.x) * 2);
+          $('#stick').attr('y2', ((event.pageY - body.y) * 2 - (window.pageYOffset * 2)));
+
+          $('#line').attr('x1', cb_cx);
+          $('#line').attr('y1', cb_cy);
+          $('#line').attr('x2', cb_cx - 2 * ((event.pageX - body.x) * 2 - cb_cx));
+          $('#line').attr('y2', cb_cy - 2 * (((event.pageY - body.y) * 2 - (window.pageYOffset * 2)) - cb_cy));
+	      }
+      }
+
+      function oncue(){
+        if(!playing){
+          onball = true;
+        }
+      }
+
+      function setNames(){
+        if(!lockNames){
+
+          p1 = $('#p1form').val()
+          p2 = $('#p2form').val()
+
+          // console.log(p1, p2)
+          // console.log(1)
+
+          if(p1 != undefined && p1 != "" && p2 != undefined && p2 != ""){
+            playing = false;
+            lockNames = true;
+            // checkSunk(true);
+            $('#nameForm').remove();
+            $('#namesButton').remove();
+            $('#p1Name').text(p1)
+            $('#p2Name').text(p2)
+            $('#whosturn').text(p1 + "'s Turn...")
+          }
+        }
+      }
+
+    </script>
+    <style>
+        body{
+            margin: 0;
+            margin-bottom: 100vh;
+            padding: 0;
+            text-align: center;
+            background-image: url("background.png");
+            background-repeat: no-repeat;
+            background-size: 100%;
+            background-color:rgb(24, 18, 8);
+        }
+
+        p, h1{
+          color:white;
+        }
+
+        #p1sunk, #p1unsunk, #p2sunk, #p2unsunk {
+          display: flex;
+          flex-direction: column;
+        }
+
+    </style>
+</head>
+<body id="body">
+    <table style="margin-left:auto; margin-right:auto; vertical-align:middle;">
+      <tr><h1 style="display:inline; vertical-align:middle; font-size: 75;">MANCALA</h1></tr>
+      <tr>
+      <td id="p1stats"><p style="display:inline; vertical-align:middle; font-size: 75;" id="p1Name"></p></td>
+      <td><p style="display:inline; vertical-align:middle; font-size: 35;" id="p1sunkt">Sunk</p><div id="p1sunk"></div></td>
+      <td><p style="display:inline; vertical-align:middle; font-size: 35;" id="p1unsunkt">Unsunk</p><div id="p1unsunk"></div></td>
+      <td><div>
+    <svg id="mainsvg" width="700" height="1375" viewBox="-25 -25 1400 2750"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <rect width="1350" height="2700" x="0" y="0" fill="#C0D0C0"/> 
+     <rect width="1400" height="25" x="-25" y="-25" fill="darkgreen"/>
+     <rect width="1400" height="25" x="-25" y="2700" fill="darkgreen" />
+     <rect width="25" height="2750" x="-25" y="-25" fill="darkgreen" />
+     <rect width="25" height="2750" x="1350" y="-25" fill="darkgreen" />
+     <circle cx="0" cy="0" r="114" fill="black" />
+     <circle cx="0" cy="1350" r="114" fill="black" />
+     <circle cx="0" cy="2700" r="114" fill="black" />
+     <circle cx="1350" cy="0" r="114" fill="black" />
+     <circle cx="1350" cy="1350" r="114" fill="black" />
+     <circle cx="1350" cy="2700" r="114" fill="black" />
+     <circle cx="525" cy="525" r="28" fill="YELLOW" />
+     <circle cx="600" cy="525" r="28" fill="BLUE" />
+     <circle cx="675" cy="525" r="28" fill="RED" />
+     <circle cx="750" cy="525" r="28" fill="PURPLE" />
+     <circle cx="825" cy="525" r="28" fill="ORANGE" />
+     <circle cx="562" cy="585" r="28" fill="GREEN" />
+     <circle cx="637" cy="585" r="28" fill="BROWN" />
+     <circle cx="712" cy="585" r="28" fill="PINK" />
+     <circle cx="787" cy="585" r="28" fill="LIGHTYELLOW" />
+     <circle cx="600" cy="645" r="28" fill="LIGHTBLUE" />
+     <circle cx="675" cy="645" r="28" fill="BLACK" />
+     <circle cx="750" cy="645" r="28" fill="MEDIUMPURPLE" />
+     <circle cx="637" cy="705" r="28" fill="LIGHTSALMON" />
+     <circle cx="712" cy="705" r="28" fill="LIGHTGREEN" />
+     <circle cx="675" cy="765" r="28" fill="SANDYBROWN" />
+     <circle id="cueball" cx="675" cy="2025" r="28" fill="WHITE" onmousedown="oncue();"/>
+     <line id="stick" x1="0" y1="0" x2="0" y2="0" stroke="BROWN" stroke-width="0"/>
+     <line id="line" x1="0" y1="0" x2="0" y2="0" stroke="GRAY" stroke-width="0"/>
+    </svg>
+    </div></td>
+    <td><p style="display:inline; vertical-align:middle; font-size: 35;" id="p2unsunkt">Unsunk</p><div id="p2unsunk"></div></td>
+    <td><p style="display:inline; vertical-align:middle; font-size: 35;" id="p2sunkt">Sunk</p><div id="p2sunk"></div></td>
+    <td id="p2stats"><p style="display:inline; vertical-align:middle; font-size: 75;" id="p2Name"></p></td>
+    </tr></table>
+    <form id="nameForm">
+      <p style="display:inline; vertical-align:middle; font-size: 75;">P1 Name
+      <input style="font-size: 75; margin-right: 100px;" type="text" id="p1form" name="p1form" size="10" /></p>
+      <p style="display:inline; vertical-align:middle; font-size: 75;">P2 Name
+      <input style="font-size: 75;"                      type="text" id="p2form" name="p2form" size="10" /></p>
+    </form>
+    <button style="display:inline; vertical-align:middle; font-size: 75;" onmousedown="setNames();" id="namesButton">Set Names</button>
+    <p style="display:inline; vertical-align:middle; font-size: 75;" id="whosturn"></p>
+    <div style="text-align:left">
+      <div id="x">x=</div>
+      <div id="y">y=</div>
+      <input id="xvel" name="xvel" value="0" />
+      <input id="yvel" name="yvel" value="0" />
+      <input name="p1" value="p1" />
+      <input name="p2" value="p2" />
+    </div>
+</body>
+</html>
